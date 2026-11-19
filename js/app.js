@@ -93,7 +93,14 @@
       pushMsg("assistant", c.opening);
       persist();
     } else {
-      state.history.forEach((m) => pushMsg(m.role, m.content));
+      state.history.forEach((m) => {
+        if (m.role === "assistant" && m.content.includes("|||")) {
+          m.content.split("|||").map((s) => s.trim()).filter(Boolean)
+            .forEach((p) => pushMsg("assistant", p));
+        } else {
+          pushMsg(m.role, m.content);
+        }
+      });
     }
     if (state.ended) lockInput(state.ended);
     requestAnimationFrame(() => scrollDown(true));
@@ -197,10 +204,21 @@
         maxTokens: 300
       });
 
-      typing(false);
-      pushMsg("assistant", reply);
+      // 連發：依 ||| 拆成多則，一則一則送出
+      const parts = reply.split("|||").map((s) => s.trim()).filter(Boolean).slice(0, 4);
+      if (!parts.length) parts.push(reply);
+
+      for (let i = 0; i < parts.length; i++) {
+        if (i > 0) {
+          typing(true);
+          // 後面幾則間隔短一點，像真的在連打
+          await new Promise((r) => setTimeout(r, 450 + Math.min(parts[i].length * 55, 1600) + Math.random() * 400));
+        }
+        typing(false);
+        pushMsg("assistant", parts[i]);
+        scrollDown();
+      }
       state.history.push({ role: "assistant", content: reply });
-      scrollDown();
 
       // 黑箱評分：每 3 句一次
       if (state.turns % 3 === 0) {
@@ -214,7 +232,7 @@
         }
       }
 
-      if (state.inviteWindow && !state.ended && (await detectSuccess(reply))) {
+      if (state.inviteWindow && !state.ended && (await detectSuccess(parts.join(" ")))) {
         state.ended = "success";
         note(`你和${current.nickname}約好要見面了。`);
         lockInput("success");

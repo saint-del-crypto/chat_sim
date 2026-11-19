@@ -9,5 +9,6 @@
 window.AVATAR_FILES = {
   yuhan: "assets/avatars/yuhan.jpg",
   chiao: "assets/avatars/chiao.jpg",
-  peiyu: "assets/avatars/peiyu.jpg"
+  peiyu: "assets/avatars/peiyu.jpg",
+  rouxi: "assets/avatars/rouxi.jpg"
 };

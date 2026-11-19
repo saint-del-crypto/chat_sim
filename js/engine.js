@@ -66,8 +66,13 @@ ${lines}
 5. 你可以不想回答、可以冷場、可以反問、可以生氣、可以已讀不回的語氣（例如只回「喔」）。
    對方踩到【地雷】時要有真實的不舒服反應，而且那個不舒服會延續一段時間，不會下一句就沒事。
 6. 絕對不要主動提供聯絡方式、不要主動要求見面，除非下方的現階段指示明確允許。
-7. 一次只回一則訊息（符合你的說話習慣的長度）。不要代替對方說話。
+7. 不要代替對方說話、不要描寫動作或旁白，只有訊息內容本身。
 8. 用繁體中文、台灣用語。
+9. 【訊息分則】你可以像真人一樣連發幾則訊息。要分則時，用 ||| 隔開，不要有其他符號。
+   例如：欸|||你剛剛那句|||我看不懂欸
+   分幾則、分不分，完全依照上面的【連發習慣】和你當下的情緒。
+   冷淡、敷衍、生氣的時候通常只回一則，而且很短。最多四則。
+   不要為了分則而分則 —— 一句話講完就送出一則。
 
 # 今天的狀態（與對方無關，不要說明原因）
 ${state.mood.desc}
@@ -98,6 +103,9 @@ ${state.memory.length ? state.memory.map((m) => "- " + m).join("\n") : "（還�
   只記對方透露的具體資訊或兩人之間發生的事。沒有就空陣列。
 
 嚴格一點。平淡無味的客套對話應該接近 0 分，不是正分。
+如果她本身就很主動或愛調情，對方「接住她的調情」只是跟著走，不算進展：
+disclosure 與 empathy 應接近 0。只有在對方把注意力放回她這個人身上時才給正分。
+單次的玩笑開過頭不算 fatal；持續把話題往身體上帶、或把她的玩笑當成邀請才是 fatal。
 只輸出 JSON，不要任何其他文字：
 {"disclosure":0,"responsiveness":0,"empathy":0,"pacing":0,"uniqueness":0,"fatal":false,"reason":"","memory":[]}`;
 
@@ -111,7 +119,7 @@ ${state.memory.length ? state.memory.map((m) => "- " + m).join("\n") : "（還�
 出門門檻：${p.出門門檻}`;
 
     const transcript = recentTurns
-      .map((t) => (t.role === "user" ? "男：" : `${char.nickname}：`) + t.content)
+      .map((t) => (t.role === "user" ? "男：" : `${char.nickname}：`) + t.content.split("|||").join(" "))
       .join("\n");
 
     const raw = await LLM.call({
@@ -133,14 +141,17 @@ ${state.memory.length ? state.memory.map((m) => "- " + m).join("\n") : "（還�
   const WEIGHTS = {
     yuhan:  { disclosure: 1.0, responsiveness: 1.2, empathy: 1.4, pacing: 1.6, uniqueness: 0.8 },
     chiao:  { disclosure: 1.3, responsiveness: 1.2, empathy: 1.5, pacing: 0.9, uniqueness: 1.3 },
-    peiyu:  { disclosure: 1.1, responsiveness: 1.0, empathy: 1.3, pacing: 1.8, uniqueness: 1.2 }
+    peiyu:  { disclosure: 1.1, responsiveness: 1.0, empathy: 1.3, pacing: 1.8, uniqueness: 1.2 },
+    // 柔希：很好聊不等於有進展。真誠度與共感吃重，節奏幾乎不計分
+    rouxi:  { disclosure: 1.6, responsiveness: 0.7, empathy: 1.7, pacing: 0.4, uniqueness: 1.1 }
   };
 
   // 出門門檻：不只看總分，還要看各維度的最低要求
   const GATES = {
     yuhan:  { total: 82, empathy: 8,  pacing: 0,  minTurns: 28 },
     chiao:  { total: 78, empathy: 10, pacing: -4, minTurns: 24 },
-    peiyu:  { total: 90, empathy: 12, pacing: 4,  minTurns: 36 }
+    peiyu:  { total: 90, empathy: 12, pacing: 4,  minTurns: 36 },
+    rouxi:  { total: 84, empathy: 16, pacing: -10, minTurns: 30 }
   };
 
   function applyJudgement(char, state, j) {
