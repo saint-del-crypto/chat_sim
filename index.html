@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>曖昧 · chat sim</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- 角色選擇 -->
+<section id="view-select">
+  <header class="top">
+    <h1>曖昧</h1>
+    <button id="gear" class="icon" title="設定">⚙</button>
+  </header>
+  <p class="lede">選一個人開始聊。你不會知道她是誰、經歷過什麼，<br>只能從對話裡慢慢認識。<br>聊到她願意跟你出門，就算成功。</p>
+  <div id="char-grid" class="grid"></div>
+  <footer class="foot">進度存在這台裝置的瀏覽器裡 · 清除快取會消失</footer>
+</section>
+
+<!-- 聊天室 -->
+<section id="view-chat" hidden>
+  <header class="top chat-top">
+    <button id="back" class="icon">‹</button>
+    <div id="peer-av" class="peer-av"></div>
+    <div class="peer-meta"><span id="peer-name"></span></div>
+    <button id="gear2" class="icon" title="設定">⚙</button>
+  </header>
+  <div id="log" class="log"></div>
+  <div class="composer">
+    <textarea id="input" rows="1" placeholder="輸入訊息…"></textarea>
+    <button id="send" class="send">送出</button>
+  </div>
+</section>
+
+<!-- 設定 -->
+<dialog id="dlg">
+  <form>
+    <h2>設定</h2>
+    <label>Anthropic API Key
+      <input id="dlg-key" type="password" placeholder="sk-ant-…" autocomplete="off">
+    </label>
+    <p class="hint">金鑰只存在你自己的瀏覽器（localStorage），不會傳到任何第三方伺服器 —— 這個網站沒有後端。</p>
+    <label>對話模型 <input id="dlg-model" type="text"></label>
+    <label>評分模型 <input id="dlg-judge" type="text"></label>
+    <div class="dlg-row">
+      <button id="dlg-export" class="ghost">匯出存檔</button>
+      <label class="ghost file">匯入存檔<input id="dlg-import" type="file" accept="application/json" hidden></label>
+      <button id="dlg-reset" class="ghost danger">清除進度</button>
+    </div>
+    <div class="dlg-actions">
+      <button id="dlg-close" class="ghost">取消</button>
+      <button id="dlg-save" class="primary">儲存</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="data/characters.js"></script>
+<script src="js/personas.js"></script>
+<script src="js/avatar.js"></script>
+<script src="js/store.js"></script>
+<script src="js/llm.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+# 人設明文原始檔不進 repo（避免玩家直接讀到）
+tools/characters.src.json
+.DS_Store
+node_modules/
