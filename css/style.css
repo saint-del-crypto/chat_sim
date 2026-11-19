@@ -31,9 +31,14 @@
 }
 
 *{box-sizing:border-box}
-html{height:100%;-webkit-text-size-adjust:100%}
+html{
+  height:100%;-webkit-text-size-adjust:100%;
+  /* 任何元素溢出都不要讓整頁左右滑動 */
+  overflow-x:hidden;
+}
 body{
-  margin:0;min-height:100%;
+  margin:0;min-height:100%;width:100%;max-width:100%;overflow-x:hidden;
+  overscroll-behavior-x:none;touch-action:pan-y;
   background:var(--paper);color:var(--ink);
   font:16px/1.7 var(--sans);
   -webkit-font-smoothing:antialiased;
@@ -47,7 +52,7 @@ body::before{
     radial-gradient(1100px 520px at 12% -8%, var(--rose-soft), transparent 62%),
     radial-gradient(900px 480px at 92% 4%, var(--paper-2), transparent 60%);
 }
-section{position:relative;z-index:1;max-width:560px;margin:0 auto}
+section{position:relative;z-index:1;width:100%;max-width:560px;margin:0 auto;overflow-x:hidden}
 button,textarea,input{font:inherit;color:inherit}
 button{cursor:pointer}
 
@@ -86,8 +91,21 @@ button{cursor:pointer}
   transition:transform .22s cubic-bezier(.2,.8,.3,1), border-color .22s;
 }
 .item:active{transform:scale(.985);border-color:var(--rose)}
-.item .av{flex:0 0 auto}
-.item .av svg{display:block;border-radius:15px}
+.item .av{flex:0 0 auto;position:relative}
+.item .av svg,.item .av img{display:block;border-radius:15px}
+/* 換頭像 */
+.pbtn{
+  position:absolute;right:-7px;bottom:-7px;
+  width:30px;height:30px;border-radius:50%;
+  background:var(--card);border:1px solid var(--line);
+  color:var(--ink-soft);font-size:13px;line-height:1;
+  display:grid;place-items:center;box-shadow:var(--shadow);
+}
+.pbtn:active{color:var(--rose);border-color:var(--rose)}
+.tiphint{
+  margin:14px 2px 0;color:var(--ink-faint);
+  font-size:11.5px;letter-spacing:.04em;text-align:center;
+}
 .item .txt{flex:1;min-width:0}
 .item .nm{
   font-family:var(--serif);font-size:21px;line-height:1.3;letter-spacing:.04em;
@@ -137,7 +155,7 @@ button{cursor:pointer}
   color:var(--ink-soft);font-size:28px;line-height:1;
 }
 .back:active{color:var(--rose)}
-.bar .av svg{display:block;border-radius:11px}
+.bar .av svg,.bar .av img{display:block;border-radius:11px}
 .bar .who{flex:1;min-width:0}
 .bar .who b{
   display:block;font-family:var(--serif);font-weight:400;
@@ -148,7 +166,7 @@ button{cursor:pointer}
 }
 
 .log{
-  flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+  flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
   -webkit-overflow-scrolling:touch;
   padding:20px 16px 8px;
   display:flex;flex-direction:column;gap:9px;

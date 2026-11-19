@@ -118,8 +118,7 @@ ${state.memory.length ? state.memory.map((m) => "- " + m).join("\n") : "（還�
       system: JUDGE_SYSTEM,
       messages: [{ role: "user", content: `# 角色摘要\n${summary}\n\n# 最近對話\n${transcript}` }],
       model: Store.getJudgeModel(),
-      maxTokens: 300,
-      temperature: 0
+      maxTokens: 300
     });
 
     try {

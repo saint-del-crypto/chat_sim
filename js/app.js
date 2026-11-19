@@ -42,10 +42,12 @@
     CHARACTERS.forEach((c) => {
       const saved = all[c.id];
       const done = saved && saved.ended === "success";
-      const row = el("button", "item");
-      row.type = "button";
+      const row = el("div", "item");
       row.innerHTML = `
-        <div class="av">${Avatar.svg(c.avatar, 66)}</div>
+        <div class="av">
+          ${Avatar.render(c, 66)}
+          <button class="pbtn" type="button" aria-label="更換頭像">⌾</button>
+        </div>
         <div class="txt">
           <div class="nm">${c.name}<i>${c.age}</i></div>
           <div class="tg">${c.tagline}</div>
@@ -57,8 +59,27 @@
         </div>
         <div class="chev">›</div>`;
       row.onclick = () => openChat(c);
+      row.querySelector(".pbtn").onclick = (e) => {
+        e.stopPropagation();
+        pickPhoto(c);
+      };
       list.appendChild(row);
     });
+  }
+
+  // ---------- 自訂頭像 ----------
+  let photoTarget = null;
+  function pickPhoto(c) {
+    if (Store.getPhoto(c.id)) {
+      if (confirm(`${c.name} 已經有自訂頭像。要換成另一張嗎？\n（按「取消」則恢復成預設頭像）`)) {
+        photoTarget = c; $("#photo-file").click();
+      } else {
+        Store.clearPhoto(c.id); renderSelect();
+      }
+      return;
+    }
+    photoTarget = c;
+    $("#photo-file").click();
   }
 
   // ---------- 聊天室 ----------
@@ -68,7 +89,8 @@
     lastRole = null;
     $("#view-select").hidden = true;
     $("#view-chat").hidden = false;
-    $("#peer-av").innerHTML = Avatar.svg(c.avatar, 38);
+    document.body.style.overflow = "hidden";
+    $("#peer-av").innerHTML = Avatar.render(c, 38);
     $("#peer-name").textContent = c.name;
     $("#log").innerHTML = "";
     setPeerState();
@@ -179,8 +201,7 @@
       const reply = await LLM.call({
         system: Engine.buildSystem(current, state),
         messages: msgs,
-        maxTokens: 300,
-        temperature: 1
+        maxTokens: 300
       });
 
       typing(false);
@@ -207,12 +228,14 @@
       }
     } catch (e) {
       typing(false);
+      const keyIssue = e.message === "NO_KEY" || e.message === "BAD_KEY";
       note(
-        e.message === "NO_KEY" ? "請先在設定裡填入 API Key。"
-        : e.message === "BAD_KEY" ? "API Key 無效，請重新設定。"
-        : e.message === "RATE_LIMIT" ? "呼叫太頻繁，等幾秒再試。"
-        : "連線失敗：" + e.message
+        keyIssue ? "API Key 有問題，請重新設定。"
+        : e.message === "RATE_LIMIT" ? "訊息送太快了，等幾秒再試。"
+        : "訊息沒送出去，再試一次。"
       );
+      if (keyIssue) openSettings();
+      else console.error(e);
     } finally {
       busy = false;
       if (!state.ended) $("#send").disabled = false;
@@ -228,8 +251,7 @@
           "含糊、客套、說再看看、改天之類的都不算。只回 YES 或 NO。",
         messages: [{ role: "user", content: lastReply }],
         model: Store.getJudgeModel(),
-        maxTokens: 5,
-        temperature: 0
+        maxTokens: 5
       });
       return /YES/i.test(out);
     } catch (e) {
@@ -267,7 +289,19 @@
 
     $("#back").onclick = () => { persist(); renderSelect(); };
     $("#gear").onclick = openSettings;
-    $("#gear2").onclick = openSettings;
+
+    $("#photo-file").onchange = async (ev) => {
+      const f = ev.target.files[0];
+      ev.target.value = "";
+      if (!f || !photoTarget) return;
+      try {
+        Store.setPhoto(photoTarget.id, await Avatar.fromFile(f));
+        renderSelect();
+      } catch (err) {
+        alert(err.message);
+      }
+      photoTarget = null;
+    };
 
     $("#dlg").querySelector("form").addEventListener("submit", (e) => {
       e.preventDefault();
