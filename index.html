@@ -2,56 +2,85 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>曖昧 · chat sim</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5">
+<meta name="theme-color" content="#FBF8F4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15120F" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="description" content="一場靠對話推進的曖昧。">
+<title>曖昧</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<!-- 角色選擇 -->
+<!-- ===== 選角 ===== -->
 <section id="view-select">
-  <header class="top">
+  <button id="gear" class="gear" aria-label="設定">⚙</button>
+
+  <div class="hero">
     <h1>曖昧</h1>
-    <button id="gear" class="icon" title="設定">⚙</button>
-  </header>
-  <p class="lede">選一個人開始聊。你不會知道她是誰、經歷過什麼，<br>只能從對話裡慢慢認識。<br>聊到她願意跟你出門，就算成功。</p>
-  <div id="char-grid" class="grid"></div>
-  <footer class="foot">進度存在這台裝置的瀏覽器裡 · 清除快取會消失</footer>
+    <div class="rule"></div>
+    <p class="sub">
+      你不會知道她是誰、經歷過什麼。<br>
+      只能從一句一句的對話裡，慢慢認識。<br>
+      <em>聊到她願意跟你出門，就算成功。</em>
+    </p>
+  </div>
+
+  <span class="label">Choose someone</span>
+  <div id="char-list" class="list"></div>
+
+  <p class="foot">
+    進度存在這台裝置的瀏覽器裡<br>
+    清除瀏覽資料會一併消失，可在設定中匯出
+  </p>
 </section>
 
-<!-- 聊天室 -->
+<!-- ===== 聊天室 ===== -->
 <section id="view-chat" hidden>
-  <header class="top chat-top">
-    <button id="back" class="icon">‹</button>
-    <div id="peer-av" class="peer-av"></div>
-    <div class="peer-meta"><span id="peer-name"></span></div>
-    <button id="gear2" class="icon" title="設定">⚙</button>
+  <header class="bar">
+    <button id="back" class="back" aria-label="返回">‹</button>
+    <div id="peer-av" class="av"></div>
+    <div class="who">
+      <b id="peer-name"></b>
+      <span id="peer-state"></span>
+    </div>
+    <button id="gear2" class="gear" style="position:static" aria-label="設定">⚙</button>
   </header>
+
   <div id="log" class="log"></div>
+
   <div class="composer">
-    <textarea id="input" rows="1" placeholder="輸入訊息…"></textarea>
-    <button id="send" class="send">送出</button>
+    <textarea id="input" rows="1" placeholder="說點什麼…" enterkeyhint="send"
+      autocapitalize="sentences" autocorrect="on"></textarea>
+    <button id="send" class="send" aria-label="送出">↑</button>
   </div>
 </section>
 
-<!-- 設定 -->
+<!-- ===== 設定 ===== -->
 <dialog id="dlg">
   <form>
+    <div class="grab"></div>
     <h2>設定</h2>
-    <label>Anthropic API Key
-      <input id="dlg-key" type="password" placeholder="sk-ant-…" autocomplete="off">
+
+    <label class="fld">
+      <span>Anthropic API Key</span>
+      <input id="dlg-key" type="password" placeholder="sk-ant-…" autocomplete="off"
+        autocapitalize="off" autocorrect="off" spellcheck="false">
     </label>
-    <p class="hint">金鑰只存在你自己的瀏覽器（localStorage），不會傳到任何第三方伺服器 —— 這個網站沒有後端。</p>
-    <label>對話模型 <input id="dlg-model" type="text"></label>
-    <label>評分模型 <input id="dlg-judge" type="text"></label>
-    <div class="dlg-row">
-      <button id="dlg-export" class="ghost">匯出存檔</button>
-      <label class="ghost file">匯入存檔<input id="dlg-import" type="file" accept="application/json" hidden></label>
-      <button id="dlg-reset" class="ghost danger">清除進度</button>
+    <p class="hint">金鑰只存在你自己的瀏覽器，不會傳給任何第三方 —— 這個網站沒有後端。</p>
+
+    <label class="fld"><span>對話模型</span><input id="dlg-model" type="text" autocapitalize="off" spellcheck="false"></label>
+    <label class="fld"><span>評分模型</span><input id="dlg-judge" type="text" autocapitalize="off" spellcheck="false"></label>
+
+    <div class="chips">
+      <button id="dlg-export" class="chip" type="button">匯出存檔</button>
+      <label class="chip file">匯入存檔<input id="dlg-import" type="file" accept="application/json" hidden></label>
+      <button id="dlg-reset" class="chip danger" type="button">清除進度</button>
     </div>
-    <div class="dlg-actions">
-      <button id="dlg-close" class="ghost">取消</button>
-      <button id="dlg-save" class="primary">儲存</button>
+
+    <div class="acts">
+      <button id="dlg-close" class="cancel" type="button">取消</button>
+      <button id="dlg-save" class="ok" type="submit">儲存</button>
     </div>
   </form>
 </dialog>

@@ -6,24 +6,20 @@
   let current = null;   // 當前角色
   let state = null;     // 當前存檔
   let busy = false;
+  let lastRole = null;  // 用來收緊連續訊息的間距
 
   // ---------- 存檔 ----------
   function freshState() {
     return {
-      turns: 0,
-      strikes: 0,
-      inviteWindow: false,
-      ended: null,            // "success" | "ghosted" | null
-      mood: Engine.rollMood(),
-      moodTurn: 0,
+      turns: 0, strikes: 0, inviteWindow: false, ended: null,
+      mood: Engine.rollMood(), moodTurn: 0,
       memory: [],
       score: { total: 8, ceiling: 100, dims: {} },
-      history: []             // {role, content}
+      history: []
     };
   }
   function loadState(id) {
-    const all = Store.loadAll();
-    const s = all[id];
+    const s = Store.loadAll()[id];
     if (!s) return null;
     if (!s.mood) s.mood = Engine.rollMood();
     return s;
@@ -34,61 +30,75 @@
     Store.saveAll(all);
   }
 
-  // ---------- 畫面：角色選擇 ----------
+  // ---------- 選角 ----------
   function renderSelect() {
     $("#view-chat").hidden = true;
     $("#view-select").hidden = false;
-    const grid = $("#char-grid");
-    grid.innerHTML = "";
+    document.body.style.overflow = "";
+    const list = $("#char-list");
+    list.innerHTML = "";
     const all = Store.loadAll();
 
     CHARACTERS.forEach((c) => {
-      const card = el("button", "card");
       const saved = all[c.id];
-      card.innerHTML = `
-        <div class="card-av">${Avatar.svg(c.avatar, 104)}</div>
-        <div class="card-name">${c.name}<span>${c.age}</span></div>
-        <div class="card-tag">${c.tagline}</div>
-        <div class="card-foot">${
-          saved
-            ? saved.ended === "success"
-              ? "✓ 已經約出門了"
-              : `聊到第 ${saved.turns} 句`
-            : "還沒聊過"
-        }</div>`;
-      card.onclick = () => openChat(c);
-      grid.appendChild(card);
+      const done = saved && saved.ended === "success";
+      const row = el("button", "item");
+      row.type = "button";
+      row.innerHTML = `
+        <div class="av">${Avatar.svg(c.avatar, 66)}</div>
+        <div class="txt">
+          <div class="nm">${c.name}<i>${c.age}</i></div>
+          <div class="tg">${c.tagline}</div>
+          <div class="st${done ? " on" : ""}">${
+            done ? "已經約出門了"
+                 : saved ? `聊到第 ${saved.turns} 句`
+                         : "還沒說過話"
+          }</div>
+        </div>
+        <div class="chev">›</div>`;
+      row.onclick = () => openChat(c);
+      list.appendChild(row);
     });
   }
 
-  // ---------- 畫面：聊天室 ----------
+  // ---------- 聊天室 ----------
   function openChat(c) {
     current = c;
     state = loadState(c.id) || freshState();
+    lastRole = null;
     $("#view-select").hidden = true;
     $("#view-chat").hidden = false;
-    $("#peer-av").innerHTML = Avatar.svg(c.avatar, 40);
+    $("#peer-av").innerHTML = Avatar.svg(c.avatar, 38);
     $("#peer-name").textContent = c.name;
     $("#log").innerHTML = "";
+    setPeerState();
 
     if (!state.history.length) {
-      pushMsg("assistant", c.opening);
       state.history.push({ role: "assistant", content: c.opening });
+      pushMsg("assistant", c.opening);
       persist();
     } else {
       state.history.forEach((m) => pushMsg(m.role, m.content));
     }
     if (state.ended) lockInput(state.ended);
-    scrollDown();
-    $("#input").focus();
+    requestAnimationFrame(() => scrollDown(true));
+  }
+
+  function setPeerState(txt) {
+    $("#peer-state").textContent =
+      txt || (state.ended === "success" ? "已約好見面"
+            : state.ended === "ghosted" ? "沒有再回覆"
+            : "線上");
   }
 
   function pushMsg(role, text) {
-    const row = el("div", "row " + (role === "user" ? "me" : "you"));
-        const b = el("div", "bubble");
+    const cont = role === lastRole;
+    const row = el("div", "row " + (role === "user" ? "me" : "you") + (cont ? " cont" : ""));
+    const b = el("div", "bubble");
     b.textContent = text;
     row.appendChild(b);
     $("#log").appendChild(row);
+    lastRole = role;
   }
 
   function typing(on) {
@@ -99,43 +109,56 @@
       t.id = "typing";
       t.innerHTML = '<div class="bubble dots"><span></span><span></span><span></span></div>';
       $("#log").appendChild(t);
+      setPeerState("正在輸入…");
       scrollDown();
-    } else if (t) t.remove();
+    } else if (t) {
+      t.remove();
+      setPeerState();
+    }
   }
 
-  function scrollDown() {
+  function scrollDown(instant) {
     const l = $("#log");
-    l.scrollTop = l.scrollHeight;
+    l.scrollTo({ top: l.scrollHeight, behavior: instant ? "auto" : "smooth" });
   }
 
-  function sysNote(text) {
-    const n = el("div", "sysnote");
+  function note(text) {
+    const n = el("div", "note");
     n.textContent = text;
     $("#log").appendChild(n);
+    lastRole = null;
     scrollDown();
   }
 
   function lockInput(kind) {
     $("#input").disabled = true;
     $("#send").disabled = true;
-    $("#input").placeholder =
-      kind === "success" ? "你們約好要見面了。" : "她已經不太想回了。";
+    $("#input").placeholder = kind === "success" ? "你們約好了。" : "她已經不太想回了。";
+    setPeerState();
   }
 
-  // ---------- 送出訊息 ----------
+  // 輸入框隨內容長高
+  function autoGrow() {
+    const i = $("#input");
+    i.style.height = "auto";
+    i.style.height = Math.min(i.scrollHeight, 124) + "px";
+  }
+
+  // ---------- 送出 ----------
   async function send() {
     if (busy || state.ended) return;
-    const text = $("#input").value.trim();
+    const input = $("#input");
+    const text = input.value.trim();
     if (!text) return;
     if (!Store.getApiKey()) { openSettings(); return; }
 
-    $("#input").value = "";
+    input.value = "";
+    autoGrow();
     pushMsg("user", text);
     state.history.push({ role: "user", content: text });
     state.turns++;
     scrollDown();
 
-    // 每 8 句換一次心情（與好感度無關的噪音）
     if (state.turns - state.moodTurn >= 8) {
       state.mood = Engine.rollMood();
       state.moodTurn = state.turns;
@@ -143,19 +166,18 @@
 
     busy = true;
     $("#send").disabled = true;
-    typing(true);
 
     try {
-      // 模擬真人回訊息的延遲（忙碌時更久）
+      // 模擬真人的回訊息節奏
       const base = state.mood.k === "busy" ? 1800 : 700;
       await new Promise((r) => setTimeout(r, base + Math.random() * 1400));
+      typing(true);
 
-      const system = Engine.buildSystem(current, state);
       const msgs = state.history.slice(-24).map((m) => ({ role: m.role, content: m.content }));
       if (msgs[0] && msgs[0].role !== "user") msgs.shift();
 
       const reply = await LLM.call({
-        system,
+        system: Engine.buildSystem(current, state),
         messages: msgs,
         maxTokens: 300,
         temperature: 1
@@ -164,45 +186,40 @@
       typing(false);
       pushMsg("assistant", reply);
       state.history.push({ role: "assistant", content: reply });
+      scrollDown();
 
-      // 黑箱評分：每 3 句跑一次
+      // 黑箱評分：每 3 句一次
       if (state.turns % 3 === 0) {
-        const recent = state.history.slice(-8);
-        const j = await Engine.judge(current, state, recent);
+        const j = await Engine.judge(current, state, state.history.slice(-8));
         Engine.applyJudgement(current, state, j);
         if (!state.inviteWindow && Engine.checkGate(current, state)) state.inviteWindow = true;
         if ((state.strikes || 0) >= 3) {
           state.ended = "ghosted";
-          sysNote("她已讀了，但沒有再回。");
+          note("她已讀了，但沒有再回。");
           lockInput("ghosted");
         }
       }
 
-      // 結局判定：在邀約窗開啟後，偵測是否真的約成
-      if (state.inviteWindow && !state.ended) {
-        if (await detectSuccess(reply)) {
-          state.ended = "success";
-          sysNote(`你和${current.nickname}約好要見面了。`);
-          lockInput("success");
-        }
+      if (state.inviteWindow && !state.ended && (await detectSuccess(reply))) {
+        state.ended = "success";
+        note(`你和${current.nickname}約好要見面了。`);
+        lockInput("success");
       }
     } catch (e) {
       typing(false);
-      const msg =
-        e.message === "NO_KEY" ? "請先到右上角設定 API Key。"
+      note(
+        e.message === "NO_KEY" ? "請先在設定裡填入 API Key。"
         : e.message === "BAD_KEY" ? "API Key 無效，請重新設定。"
         : e.message === "RATE_LIMIT" ? "呼叫太頻繁，等幾秒再試。"
-        : "連線失敗：" + e.message;
-      sysNote(msg);
+        : "連線失敗：" + e.message
+      );
     } finally {
       busy = false;
       if (!state.ended) $("#send").disabled = false;
       persist();
-      scrollDown();
     }
   }
 
-  // 用一次極小的呼叫判斷「這句話是否成立了一次具體的見面約定」
   async function detectSuccess(lastReply) {
     try {
       const out = await LLM.call({
@@ -232,25 +249,36 @@
   window.addEventListener("DOMContentLoaded", () => {
     renderSelect();
 
+    const input = $("#input");
     $("#send").onclick = send;
-    $("#input").addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+    input.addEventListener("input", autoGrow);
+    input.addEventListener("keydown", (e) => {
+      // 手機上 Enter 換行比較自然，桌機 Enter 送出
+      const desktop = window.matchMedia("(min-width:600px)").matches;
+      if (e.key === "Enter" && desktop && !e.shiftKey) { e.preventDefault(); send(); }
     });
+    // 鍵盤彈出時把最新訊息頂上來
+    input.addEventListener("focus", () => setTimeout(() => scrollDown(true), 300));
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", () => {
+        if (!$("#view-chat").hidden) scrollDown(true);
+      });
+    }
+
     $("#back").onclick = () => { persist(); renderSelect(); };
     $("#gear").onclick = openSettings;
     $("#gear2").onclick = openSettings;
 
-    $("#dlg-save").onclick = (e) => {
+    $("#dlg").querySelector("form").addEventListener("submit", (e) => {
       e.preventDefault();
       Store.setApiKey($("#dlg-key").value);
       Store.setModel($("#dlg-model").value.trim() || Store.DEFAULT_MODEL);
       Store.setJudgeModel($("#dlg-judge").value.trim() || Store.DEFAULT_JUDGE);
       $("#dlg").close();
-    };
-    $("#dlg-close").onclick = (e) => { e.preventDefault(); $("#dlg").close(); };
+    });
+    $("#dlg-close").onclick = () => $("#dlg").close();
 
-    $("#dlg-export").onclick = (e) => {
-      e.preventDefault();
+    $("#dlg-export").onclick = () => {
       const blob = new Blob([Store.exportSave()], { type: "application/json" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
@@ -262,13 +290,12 @@
       if (!f) return;
       const r = new FileReader();
       r.onload = () => {
-        try { Store.importSave(r.result); alert("存檔已匯入"); location.reload(); }
+        try { Store.importSave(r.result); location.reload(); }
         catch (err) { alert("匯入失敗：" + err.message); }
       };
       r.readAsText(f);
     };
-    $("#dlg-reset").onclick = (e) => {
-      e.preventDefault();
+    $("#dlg-reset").onclick = () => {
       if (confirm("清除所有聊天進度？此動作無法復原。")) { Store.wipe(); location.reload(); }
     };
   });
