@@ -1,4 +1,8 @@
-/* 頭像：玩家自己上傳的照片優先，否則用程序化 SVG（零素材授權風險） */
+/* 頭像
+ * 後台在 data/avatars.js 指定圖檔；圖檔不存在時自動退回程序化 SVG。
+ * 做法：外層 div 用 background-image 疊在 SVG 之上 ——
+ * 圖片載入成功就蓋住 SVG，404 或載入失敗則 SVG 透出來，不會破圖。
+ */
 window.Avatar = (function () {
   const RATIO = 110 / 96;
 
@@ -26,43 +30,13 @@ ${hair(a.style, a.hair)}
 </svg>`;
   }
 
-  // 角色的頭像（有上傳照片就用照片）
   function render(char, size) {
     const w = size || 96;
     const h = Math.round(w * RATIO);
-    const photo = Store.getPhoto(char.id);
-    if (photo) {
-      return `<img src="${photo}" width="${w}" height="${h}" alt=""
-        style="width:${w}px;height:${h}px;object-fit:cover;border-radius:${Math.round(w / 4.4)}px;display:block">`;
-    }
-    return svg(char.avatar, w);
+    const file = (window.AVATAR_FILES || {})[char.id] || "";
+    const bg = file ? `background-image:url('${file}');` : "";
+    return `<div class="avbox" style="width:${w}px;height:${h}px;border-radius:${Math.round(w / 4.4)}px;${bg}">${svg(char.avatar, w)}</div>`;
   }
 
-  /* 把上傳的圖縮到 320px 寬、轉成 JPEG dataURL，避免塞爆 localStorage */
-  function fromFile(file) {
-    return new Promise((resolve, reject) => {
-      if (!/^image\//.test(file.type)) return reject(new Error("請選擇圖片檔"));
-      const fr = new FileReader();
-      fr.onerror = () => reject(new Error("讀取失敗"));
-      fr.onload = () => {
-        const img = new Image();
-        img.onerror = () => reject(new Error("這個圖片無法讀取"));
-        img.onload = () => {
-          const TW = 320, TH = Math.round(TW * RATIO);
-          const cv = document.createElement("canvas");
-          cv.width = TW; cv.height = TH;
-          const ctx = cv.getContext("2d");
-          // 置中裁切成相同比例
-          const s = Math.max(TW / img.width, TH / img.height);
-          const dw = img.width * s, dh = img.height * s;
-          ctx.drawImage(img, (TW - dw) / 2, (TH - dh) / 2, dw, dh);
-          resolve(cv.toDataURL("image/jpeg", 0.85));
-        };
-        img.src = fr.result;
-      };
-      fr.readAsDataURL(file);
-    });
-  }
-
-  return { svg, render, fromFile, RATIO };
+  return { svg, render, RATIO };
 })();

@@ -30,13 +30,21 @@
 index.html              選角 + 聊天室 + 設定
 css/style.css
 data/characters.js      人設檔（已編碼，玩家讀不到）
+data/avatars.js         角色頭像圖檔對照表（後台設定）
 js/personas.js          解碼層
-js/avatar.js            程序化 SVG 頭像（零素材授權風險）
+js/avatar.js            頭像（後台圖片，缺圖時退回 SVG）
 js/store.js             localStorage 存檔 / 匯出匯入
 js/llm.js               API 呼叫層（換成 proxy 只需改這一支）
 js/engine.js            人設注入、心情噪音、裁判層、門檻判定
 tools/codec.mjs         人設編碼/解碼工具
 ```
+
+## 換角色頭像（後台）
+
+1. 把圖片放進 `assets/avatars/`（建議寬 320px 以上，比例接近 96:110，JPG 或 WebP）
+2. 到 `data/avatars.js` 把檔名填到對應的角色 id
+
+沒放圖、或檔名對不上時會自動使用內建的程序化 SVG 頭像，不會出現破圖。
 
 ## 編輯人設
 

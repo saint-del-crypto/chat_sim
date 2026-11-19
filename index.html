@@ -28,8 +28,6 @@
 
   <span class="label">Choose someone</span>
   <div id="char-list" class="list"></div>
-  <p class="tiphint">點頭像右下角的相機可以換成你自己的照片</p>
-  <input id="photo-file" type="file" accept="image/*" hidden>
 
   <p class="foot">
     進度存在這台裝置的瀏覽器裡<br>
@@ -40,7 +38,7 @@
 <!-- ===== 聊天室 ===== -->
 <section id="view-chat" hidden>
   <header class="bar">
-    <button id="back" class="back" aria-label="返回">‹</button>
+    <button id="back" class="back" aria-label="離開對話"><i>‹</i>離開</button>
     <div id="peer-av" class="av"></div>
     <div class="who">
       <b id="peer-name"></b>
@@ -56,6 +54,22 @@
     <button id="send" class="send" aria-label="送出">↑</button>
   </div>
 </section>
+
+<!-- ===== 離開對話 ===== -->
+<dialog id="dlg-leave">
+  <form>
+    <div class="grab"></div>
+    <h2>離開對話</h2>
+    <p class="leavetxt">
+      進度會留著，你隨時可以回來接著聊。<br>
+      她不會知道你離開過。
+    </p>
+    <div class="acts">
+      <button id="leave-no" class="cancel" type="button">繼續聊</button>
+      <button id="leave-yes" class="ok" type="button">離開</button>
+    </div>
+  </form>
+</dialog>
 
 <!-- ===== 設定 ===== -->
 <dialog id="dlg">
@@ -86,6 +100,7 @@
   </form>
 </dialog>
 
+<script src="data/avatars.js"></script>
 <script src="data/characters.js"></script>
 <script src="js/personas.js"></script>
 <script src="js/avatar.js"></script>

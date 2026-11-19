@@ -44,10 +44,7 @@
       const done = saved && saved.ended === "success";
       const row = el("div", "item");
       row.innerHTML = `
-        <div class="av">
-          ${Avatar.render(c, 66)}
-          <button class="pbtn" type="button" aria-label="更換頭像">⌾</button>
-        </div>
+        <div class="av">${Avatar.render(c, 66)}</div>
         <div class="txt">
           <div class="nm">${c.name}<i>${c.age}</i></div>
           <div class="tg">${c.tagline}</div>
@@ -59,27 +56,22 @@
         </div>
         <div class="chev">›</div>`;
       row.onclick = () => openChat(c);
-      row.querySelector(".pbtn").onclick = (e) => {
-        e.stopPropagation();
-        pickPhoto(c);
-      };
       list.appendChild(row);
     });
   }
 
-  // ---------- 自訂頭像 ----------
-  let photoTarget = null;
-  function pickPhoto(c) {
-    if (Store.getPhoto(c.id)) {
-      if (confirm(`${c.name} 已經有自訂頭像。要換成另一張嗎？\n（按「取消」則恢復成預設頭像）`)) {
-        photoTarget = c; $("#photo-file").click();
-      } else {
-        Store.clearPhoto(c.id); renderSelect();
-      }
-      return;
-    }
-    photoTarget = c;
-    $("#photo-file").click();
+  // ---------- 離開對話 ----------
+  function leave() {
+    if (busy) return;                 // 她還在回訊息時先不要走
+    persist();
+    $("#dlg-leave").close();
+    renderSelect();
+    window.scrollTo(0, 0);
+  }
+  function askLeave() {
+    // 還沒真的開始聊、或已經結束的，就直接離開，不用多問
+    if (!state || state.turns === 0 || state.ended) return leave();
+    $("#dlg-leave").showModal();
   }
 
   // ---------- 聊天室 ----------
@@ -90,6 +82,7 @@
     $("#view-select").hidden = true;
     $("#view-chat").hidden = false;
     document.body.style.overflow = "hidden";
+    history.pushState(null, "", location.href);  // 讓返回手勢回到選角而不是離站
     $("#peer-av").innerHTML = Avatar.render(c, 38);
     $("#peer-name").textContent = c.name;
     $("#log").innerHTML = "";
@@ -287,21 +280,15 @@
       });
     }
 
-    $("#back").onclick = () => { persist(); renderSelect(); };
+    $("#back").onclick = askLeave;
+    $("#leave-yes").onclick = leave;
+    $("#leave-no").onclick = () => { $("#dlg-leave").close(); $("#input").focus(); };
     $("#gear").onclick = openSettings;
 
-    $("#photo-file").onchange = async (ev) => {
-      const f = ev.target.files[0];
-      ev.target.value = "";
-      if (!f || !photoTarget) return;
-      try {
-        Store.setPhoto(photoTarget.id, await Avatar.fromFile(f));
-        renderSelect();
-      } catch (err) {
-        alert(err.message);
-      }
-      photoTarget = null;
-    };
+    // 手機的返回手勢／返回鍵也當成離開對話，而不是直接跳出網站
+    window.addEventListener("popstate", () => {
+      if (!$("#view-chat").hidden) { history.pushState(null, "", location.href); askLeave(); }
+    });
 
     $("#dlg").querySelector("form").addEventListener("submit", (e) => {
       e.preventDefault();

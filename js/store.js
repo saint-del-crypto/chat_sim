@@ -7,7 +7,6 @@ window.Store = (function () {
   const K_MODEL = "cs_model";
   const K_JUDGE = "cs_judge_model";
   const K_SAVE = "cs_save_v1";
-  const K_PHOTO = "cs_photos_v1";
 
   const DEFAULT_MODEL = "claude-sonnet-5-5";
   const DEFAULT_JUDGE = "claude-haiku-5-5";
@@ -40,29 +39,9 @@ window.Store = (function () {
       const raw = localStorage.getItem(K_SAVE);
       return (raw && dec(raw)) || {};
     },
-    // ---- 自訂頭像 ----
-    allPhotos() {
-      try { return JSON.parse(localStorage.getItem(K_PHOTO) || "{}"); }
-      catch (e) { return {}; }
-    },
-    getPhoto(id) {
-      return this.allPhotos()[id] || "";
-    },
-    setPhoto(id, dataUrl) {
-      const all = this.allPhotos();
-      all[id] = dataUrl;
-      try { localStorage.setItem(K_PHOTO, JSON.stringify(all)); }
-      catch (e) { throw new Error("瀏覽器儲存空間不足，請先清除其他頭像"); }
-    },
-    clearPhoto(id) {
-      const all = this.allPhotos();
-      delete all[id];
-      localStorage.setItem(K_PHOTO, JSON.stringify(all));
-    },
-
     exportSave() {
       return JSON.stringify(
-        { version: 1, model: this.getModel(), saves: this.loadAll(), photos: this.allPhotos() },
+        { version: 1, model: this.getModel(), saves: this.loadAll() },
         null,
         2
       );
@@ -71,7 +50,6 @@ window.Store = (function () {
       const o = JSON.parse(text);
       if (!o || !o.saves) throw new Error("格式不符");
       this.saveAll(o.saves);
-      if (o.photos) localStorage.setItem(K_PHOTO, JSON.stringify(o.photos));
     },
     wipe() {
       localStorage.removeItem(K_SAVE);
